@@ -106,6 +106,19 @@ module Sunzi
         end
       end
 
+      def prepare_files_in(dir, method)
+        Dir["#{dir}/*"].each do |file|
+          if File.file?(file)
+            send method, File.expand_path(file), "compiled/#{dir}/#{File.basename(file)}"
+          elsif File.directory?(file)
+            empty_directory(file)
+            prepare_files_in(file, method)
+          else
+            raise ScriptError, "Can not compile file of type #{File.ftype(file)}: #{file}"
+          end
+        end
+      end
+
       def do_compile(role)
         # Check if you're in the sunzi directory
         abort_with 'You must be in the sunzi folder' unless File.exists?('sunzi.yml')
@@ -132,9 +145,7 @@ module Sunzi
         # Copy local files
         @attributes = OpenStruct.new(@config['attributes'])
         copy_or_template = (@config['preferences'] && @config['preferences']['eval_erb']) ? :template : :copy_file
-        Dir['recipes/*'].each {|file| send copy_or_template, File.expand_path(file), "compiled/recipes/#{File.basename(file)}" }
-        Dir['roles/*'].each   {|file| send copy_or_template, File.expand_path(file), "compiled/roles/#{File.basename(file)}" }
-        Dir['files/*'].each   {|file| send copy_or_template, File.expand_path(file), "compiled/files/#{File.basename(file)}" }
+        %w{recipes roles files}.each {|dir| prepare_files_in(dir, copy_or_template)}
         (@config['files'] || []).each {|file| send copy_or_template, File.expand_path(file), "compiled/files/#{File.basename(file)}" }
 
         # Build install.sh
