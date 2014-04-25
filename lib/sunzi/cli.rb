@@ -71,9 +71,11 @@ module Sunzi
         # compile attributes and recipes
         do_compile(role)
 
-        # The host key might change when we instantiate a new VM, so
-        # we remove (-R) the old host key from known_hosts.
-        `ssh-keygen -R #{host} 2> /dev/null`
+        if @config['ignore_ssh_host_change']
+          # The host key might change when we instantiate a new VM, so
+          # we remove (-R) the old host key from known_hosts.
+          `ssh-keygen -R #{host} 2> /dev/null`
+        end
 
         remote_commands = <<-EOS
         rm -rf ~/sunzi &&
